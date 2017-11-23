@@ -1,0 +1,98 @@
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: suchen
+  namespace: bibliothek
+  labels:
+    app: suchen
+    role: frontend
+    scs: suchen
+spec:
+  ports:
+  - port: 8080
+    name: web
+  selector:
+    app: suchen
+    role: frontend
+    scs: suchen
+
+---
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: suchen
+  namespace: bibliothek
+  labels:
+    app: suchen
+    role: frontend
+    scs: suchen
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: suchen
+      role: frontend
+      scs: suchen
+  template:
+    metadata:
+      labels:
+        app: suchen
+        role: frontend
+        scs: suchen
+    spec:
+      containers:
+      - name: varnish-ssi
+        image: quay.io/containerbootcamp/alpine-varnish
+      - name: node-suchen
+        image: quay.io/containerbootcamp/node-suchen
+        env:
+        - name: URI_PREFIX
+          value: "/suchen"
+        - name: ES_URI
+          value: "https://elasticsearch-suchen:9200"
+      - name: jaeger-agent
+        image: jaegertracing/jaeger-agent
+        ports:
+        - containerPort: 5775
+          protocol: UDP
+        - containerPort: 5778
+        - containerPort: 6831
+          protocol: UDP
+        - containerPort: 6832
+          protocol: UDP
+        command:
+        - "/go/bin/agent-linux"
+        - "--collector.host-port=jaeger-collector.tracing:14267"
+
+---
+
+#####
+# ingress to assets, test f.e. with
+# curl http://bootcamp.ch.innoq.io/suchen
+#####
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: suchen
+  namespace: bibliothek
+  labels:
+    app: suchen
+    role: frontend
+    scs: suchen
+  annotations:
+    ingress.kubernetes.io/auth-type: basic
+    ingress.kubernetes.io/auth-secret: basic-auth
+    ingress.kubernetes.io/auth-realm: "Authentication Required"
+spec:
+  rules:
+  - host: bootcamp.ch.innoq.io
+    http:
+      paths:
+      - path: /suchen
+        backend:
+          serviceName: suchen
+          servicePort: 8080
