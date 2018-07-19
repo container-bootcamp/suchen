@@ -1,4 +1,3 @@
-const AssetsRoute = require('./routes/assets')
 const Hapi = require('hapi')
 const Hoek = require('hoek')
 const IndexRoute = require('./routes')
@@ -38,7 +37,6 @@ server.register([
 
   server.route(IndexRoute.get(uriPrefix || '/'))
   server.route(BooksRoute.get(`${uriPrefix}/books`))
-  server.route(AssetsRoute.get(`${uriPrefix}/assets/{param*}`))
 })
 
 module.exports.start = function () {
